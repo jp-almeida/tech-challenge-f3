@@ -47,7 +47,28 @@ class SklearnPredictor:
         return self._pipeline.predict_proba(texts)
 
 
-_BACKENDS = {"sklearn": SklearnPredictor}
+class OnnxPredictor:
+    backend = "onnx"
+
+    def __init__(self, model_dir: Path, threads: int | None = None) -> None:
+        from triage.config import Settings
+        from triage.export_onnx import ONNX_FILENAME, make_session, proba_output_name
+
+        onnx_path = model_dir / ONNX_FILENAME
+        if not onnx_path.is_file():
+            raise FileNotFoundError(f"modelo ONNX não encontrado: {onnx_path}")
+        self.metadata = read_metadata(model_dir)
+        self.model_version: str = self.metadata["model_version"]
+        self._session = make_session(onnx_path, threads or Settings().ort_threads)
+        self._input = self._session.get_inputs()[0].name
+        self._output = proba_output_name(self._session)
+
+    def predict_proba(self, texts: list[str]) -> np.ndarray:
+        batch = np.array(texts, dtype=object).reshape(-1, 1)
+        return np.asarray(self._session.run([self._output], {self._input: batch})[0])
+
+
+_BACKENDS = {"sklearn": SklearnPredictor, "onnx": OnnxPredictor}
 
 
 def load_predictor(backend: str, model_dir: str | Path) -> Predictor:
