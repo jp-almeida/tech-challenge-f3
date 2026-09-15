@@ -12,9 +12,17 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from triage.api.metrics import (
+    METRICS_PATH,
+    count_prediction,
+    observe_inference,
+    register_middleware,
+    set_model_info,
+)
 from triage.api.predictor import Predictor, load_predictor
 from triage.api.schemas import (
     EXAMPLE_TEXT,
@@ -40,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             predictor = load_predictor(settings.backend, settings.model_dir)
             predictor.predict_proba([normalize_text(EXAMPLE_TEXT)])  # warm-up
             app.state.predictor = predictor
+            set_model_info(predictor.model_version, predictor.backend)
             log.info(
                 "modelo carregado: version=%s backend=%s dir=%s",
                 predictor.model_version,
@@ -83,22 +92,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         start = time.perf_counter()
         proba = predictor.predict_proba([text])[0]
-        inference_ms = (time.perf_counter() - start) * 1000
+        elapsed = time.perf_counter() - start
+        observe_inference(predictor.backend, elapsed)
 
         label_id = int(np.argmax(proba))
+        count_prediction(LABELS[label_id], predictor.backend)
         return PredictResponse(
             label=LABELS[label_id],
             label_id=label_id,
             probabilities={name: float(p) for name, p in zip(LABELS, proba, strict=True)},
             model_version=predictor.model_version,
             backend=predictor.backend,
-            inference_ms=round(inference_ms, 4),
+            inference_ms=round(elapsed * 1000, 4),
         )
 
     @app.get("/model/info", response_model=ModelInfo)
     def model_info(request: Request) -> dict:
         return get_predictor(request).metadata
 
+    # Rota explícita em vez de app.mount: mount redireciona /metrics -> /metrics/.
+    @app.get(METRICS_PATH, include_in_schema=False)
+    def metrics() -> Response:
+        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+    register_middleware(app)
     return app
 
 
