@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+reports/junit.xml
+
+# Dados e artefatos gerados
+data/processed/
+models/candidates/
+
+# Airflow
+airflow/logs/
+*.db
+
+# Ambiente
+.env
+.DS_Store
