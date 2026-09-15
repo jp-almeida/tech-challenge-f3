@@ -1,5 +1,7 @@
 # Triagem Automática de Laudos — Tech Challenge Fase 3 (MLET)
 
+[![CI](https://github.com/jp-almeida/tech-challenge-f3/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jp-almeida/tech-challenge-f3/actions/workflows/ci.yml)
+
 > Classificação de laudos em `normal` / `atencao` / `urgente`, servida por API em container,
 > com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e
 > otimização de latência (ONNX Runtime).
