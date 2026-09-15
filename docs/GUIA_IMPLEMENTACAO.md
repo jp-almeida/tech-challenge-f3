@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** planejamento — nada implementado ainda.
+> **Status:** Etapas 0, 1 e 2 concluídas; Etapa 3 com workflow pronto, aguardando push para o GitHub.
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -389,16 +389,16 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** Python 3.12, Docker Desktop (≥ 6 GB RAM alocados), `git`, `make` e conta GitHub disponíveis.
 
 **Tarefas:**
-- [ ] [OBRIG] `git init -b main`; criar repositório no GitHub (público ou com avaliadores com acesso); `git remote add origin ...`.
-- [ ] [OBRIG] `.gitignore`: `.venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`, `.coverage`, `data/processed/`, `models/candidates/`, `airflow/logs/`, `*.db`, `.env`, `.DS_Store`. **Não** ignorar `models/*.joblib`, `models/*.onnx`, `data/raw/`.
-- [ ] [OBRIG] Criar a árvore de pastas de §3.3 (com `__init__.py` e `.gitkeep` onde precisar).
-- [ ] [OBRIG] `pyproject.toml` com:
+- [ ] [OBRIG] `git init -b main`; criar repositório no GitHub (público ou com avaliadores com acesso); `git remote add origin ...`. — *parcial: `git init` feito; repositório no GitHub e `remote` pendentes (ação manual).*
+- [x] [OBRIG] `.gitignore`: `.venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`, `.coverage`, `data/processed/`, `models/candidates/`, `airflow/logs/`, `*.db`, `.env`, `.DS_Store`. **Não** ignorar `models/*.joblib`, `models/*.onnx`, `data/raw/`.
+- [x] [OBRIG] Criar a árvore de pastas de §3.3 (com `__init__.py` e `.gitkeep` onde precisar).
+- [x] [OBRIG] `pyproject.toml` com:
   - `[tool.ruff]` `line-length = 100`, `target-version = "py312"`, `[tool.ruff.lint] select = ["E", "F", "I", "B", "UP"]`, excluir `airflow/logs`.
   - `[tool.pytest.ini_options]` `pythonpath = ["src"]`, `testpaths = ["tests"]`, markers `slow` e `airflow`.
-- [ ] [OBRIG] `requirements/api.txt`, `requirements/train.txt`, `requirements/dev.txt` com versões de §3.1 (inicialmente com as libs necessárias até a Etapa 2; ONNX pode entrar já, para evitar mexer depois).
-- [ ] [REC] `Makefile` com os alvos de §3.10 (os que ainda não funcionam podem existir e falhar até a etapa correspondente).
-- [ ] [REC] `README.md` esqueleto com as seções finais (títulos vazios — ver Etapa 8), para ninguém brigar por estrutura depois.
-- [ ] [REC] Commitar este guia em `docs/`.
+- [x] [OBRIG] `requirements/api.txt`, `requirements/train.txt`, `requirements/dev.txt` com versões de §3.1 (inicialmente com as libs necessárias até a Etapa 2; ONNX pode entrar já, para evitar mexer depois).
+- [x] [REC] `Makefile` com os alvos de §3.10 (os que ainda não funcionam podem existir e falhar até a etapa correspondente).
+- [x] [REC] `README.md` esqueleto com as seções finais (títulos vazios — ver Etapa 8), para ninguém brigar por estrutura depois.
+- [x] [REC] Commitar este guia em `docs/`.
 
 **Critérios de aceite:**
 - `git log --oneline` mostra commits semânticos; `git push` funcionou.
@@ -426,25 +426,25 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `make setup` ok; `python -c "import sklearn; print(sklearn.__version__)"` → `1.8.0`.
 
 **Tarefas:**
-- [ ] [OBRIG] `scripts/download_data.py`: baixa os 2 CSVs (URLs em §3.2) com `urllib` para `data/raw/` apenas se não existirem; imprime tamanho e contagem de linhas. [REC] registrar SHA-256 e validar.
-- [ ] [OBRIG] Rodar e **commitar** `data/raw/medical_tc_train.csv` e `medical_tc_test.csv`.
-- [ ] [OBRIG] `src/triage/config.py`: `LABELS`, `LABEL_MAPPING = {1: 1, 2: 1, 3: 2, 4: 2, 5: 0}`, `Settings` (dataclass lendo env vars de §3.6 com defaults relativos à raiz do repo: `Path(__file__).resolve().parents[2]`), `DEFAULT_PARAMS`.
-- [ ] [OBRIG] `src/triage/data.py`:
+- [x] [OBRIG] `scripts/download_data.py`: baixa os 2 CSVs (URLs em §3.2) com `urllib` para `data/raw/` apenas se não existirem; imprime tamanho e contagem de linhas. [REC] registrar SHA-256 e validar.
+- [x] [OBRIG] Rodar e **commitar** `data/raw/medical_tc_train.csv` e `medical_tc_test.csv`.
+- [x] [OBRIG] `src/triage/config.py`: `LABELS`, `LABEL_MAPPING = {1: 1, 2: 1, 3: 2, 4: 2, 5: 0}`, `Settings` (dataclass lendo env vars de §3.6 com defaults relativos à raiz do repo: `Path(__file__).resolve().parents[2]`), `DEFAULT_PARAMS`.
+- [x] [OBRIG] `src/triage/data.py`:
   - `load_raw(path) -> DataFrame` com `validate_schema` (colunas `condition_label`, `medical_abstract`; sem nulos; rótulos ⊂ {1..5}; mínimo 2.000 linhas no treino — erro claro caso contrário).
   - `map_labels(df) -> df` com coluna `label` (0/1/2) e `text` (via `normalize_text`).
   - `normalize_text(text) -> str` conforme §3.4.
-- [ ] [OBRIG] `src/triage/train.py`:
+- [x] [OBRIG] `src/triage/train.py`:
   - `build_pipeline(params)` → `Pipeline([("tfidf", TfidfVectorizer(lowercase=True, ngram_range=(1, 2), min_df=2, max_features=20000, sublinear_tf=True, dtype=np.float32)), ("clf", LogisticRegression(C=1.0, max_iter=1000))])`.
     - **Não** usar `stop_words`, `strip_accents`, `tokenizer`/`preprocessor` customizados (não convertem bem para ONNX).
   - `fit(pipeline, df)`, `evaluate(pipeline, df) -> dict` (accuracy, f1_macro, f1 por classe, `classification_report` como dict), `save_artifacts(pipeline, metrics, out_dir)`.
   - `random_state=42` onde aplicável.
-- [ ] [OBRIG] `src/triage/pipeline.py`: funções `ingest`, `train`, `evaluate`, `quality_gate`, `promote` (contrato §3.4; `export_onnx` entra na Etapa 7) + CLI `argparse` com subcomandos `ingest`, `train`, `evaluate`, `promote`, `run-all`.
-- [ ] [OBRIG] Rodar `make train` → gera `models/model.joblib`, `models/metadata.json`, `reports/metrics/classification_report.json`. Anotar F1 macro obtido e ajustar `TRIAGE_QUALITY_GATE_F1` padrão para ~(F1 obtido − 0,03). Registrar em "Registro de decisões".
-- [ ] [OBRIG — **spike timeboxed em 20 min, não commitar**] Em um script descartável: converter `model.joblib` com `skl2onnx.to_onnx(pipeline, initial_types=[("text", StringTensorType([None, 1]))], options={LogisticRegression: {"zipmap": False}})`, rodar com `onnxruntime` em ~500 textos do teste e comparar `argmax` com o sklearn.
+- [x] [OBRIG] `src/triage/pipeline.py`: funções `ingest`, `train`, `evaluate`, `quality_gate`, `promote` (contrato §3.4; `export_onnx` entra na Etapa 7) + CLI `argparse` com subcomandos `ingest`, `train`, `evaluate`, `promote`, `run-all`.
+- [x] [OBRIG] Rodar `make train` → gera `models/model.joblib`, `models/metadata.json`, `reports/metrics/classification_report.json`. Anotar F1 macro obtido e ajustar `TRIAGE_QUALITY_GATE_F1` padrão para ~(F1 obtido − 0,03). Registrar em "Registro de decisões".
+- [x] [OBRIG — **spike timeboxed em 20 min, não commitar**] Em um script descartável: converter `model.joblib` com `skl2onnx.to_onnx(pipeline, initial_types=[("text", StringTensorType([None, 1]))], options={LogisticRegression: {"zipmap": False}})`, rodar com `onnxruntime` em ~500 textos do teste e comparar `argmax` com o sklearn.
   - Concordância ≥ 99% → configuração aprovada.
   - Divergência → aplicar, na ordem, até passar: (1) remover `sublinear_tf`; (2) testar opções do conversor de TF-IDF para tokenização (`tokenexp`/`separators` — ver documentação do skl2onnx sobre TfidfVectorizer); (3) `ngram_range=(1, 1)`; (4) Plano B: ONNX só do classificador (vetorização em sklearn). Registrar a decisão.
-- [ ] [REC] `scripts/make_fixture.py` → `tests/fixtures/sample_dataset.csv` (30 por `condition_label`, seed 42, **mesmo formato do CSV bruto**).
-- [ ] [OBRIG] Testes:
+- [x] [REC] `scripts/make_fixture.py` → `tests/fixtures/sample_dataset.csv` (30 por `condition_label`, seed 42, **mesmo formato do CSV bruto**).
+- [x] [OBRIG] Testes:
   - `tests/test_data.py`: mapeamento cobre 1–5 e só gera 0/1/2; `normalize_text` colapsa espaços e trunca; `validate_schema` falha com coluna faltando.
   - `tests/test_train.py`: treinar na fixture (com `min_df=1` e `max_features` pequeno via params) produz pipeline com `predict_proba` shape `(n, 3)`; `save_artifacts` cria arquivos; `metadata.json` tem as chaves de §3.4.
   - `tests/test_pipeline.py`: `run-all` num `tmp_path` com a fixture termina e `promote` cria `model.joblib` + `metadata.json`; `quality_gate` levanta exceção com F1 abaixo do limiar.
@@ -484,32 +484,32 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `ls models/model.joblib models/metadata.json`; `make test` verde.
 
 **Tarefas:**
-- [ ] [OBRIG] `src/triage/api/schemas.py`: `PredictRequest` (`text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=20000)]`), `PredictResponse`, `HealthResponse` — exatamente como §3.5. Incluir `example` no schema para o Swagger ficar bom no vídeo.
-- [ ] [OBRIG] `src/triage/api/predictor.py`: `Predictor` (Protocol), `SklearnPredictor` (carrega `model.joblib`, lê `model_version` do `metadata.json`), `load_predictor(backend, model_dir)` que por ora aceita só `"sklearn"` e levanta `ValueError` claro para outros valores (a Etapa 7 adiciona `"onnx"`).
-- [ ] [OBRIG] `src/triage/api/main.py`:
+- [x] [OBRIG] `src/triage/api/schemas.py`: `PredictRequest` (`text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=20000)]`), `PredictResponse`, `HealthResponse` — exatamente como §3.5. Incluir `example` no schema para o Swagger ficar bom no vídeo.
+- [x] [OBRIG] `src/triage/api/predictor.py`: `Predictor` (Protocol), `SklearnPredictor` (carrega `model.joblib`, lê `model_version` do `metadata.json`), `load_predictor(backend, model_dir)` que por ora aceita só `"sklearn"` e levanta `ValueError` claro para outros valores (a Etapa 7 adiciona `"onnx"`).
+- [x] [OBRIG] `src/triage/api/main.py`:
   - `create_app(settings: Settings | None = None) -> FastAPI` com `lifespan` que carrega o predictor em `app.state.predictor` e faz warm-up; se falhar, loga erro e deixa `None` (health → 503).
   - Rotas `/health`, `/predict`, [REC] `/model/info`.
   - `inference_ms` medido com `time.perf_counter()` só em torno de `predict_proba`.
   - `app = create_app()` no fim do módulo.
-- [ ] [OBRIG] `tests/test_api.py` (usa `trained_model_dir` + `TestClient` como context manager para disparar o lifespan):
+- [x] [OBRIG] `tests/test_api.py` (usa `trained_model_dir` + `TestClient` como context manager para disparar o lifespan):
   - `/health` 200 e `model_loaded=true`.
   - `/predict` válido → `label ∈ LABELS`, probabilidades somam ≈ 1 (`abs < 1e-4`), `backend == "sklearn"`.
   - Texto vazio/curto → 422; campo ausente → 422; JSON inválido → 422.
   - Diretório de modelo inexistente → `/health` 503 e `/predict` 503.
-- [ ] [OBRIG] `Dockerfile` (raiz):
+- [x] [OBRIG] `Dockerfile` (raiz):
   - `FROM python:3.12-slim`; `ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/src TRIAGE_MODEL_DIR=/app/models TRIAGE_MODEL_BACKEND=sklearn`.
   - `COPY requirements/api.txt` → `pip install --no-cache-dir -r` (camada de deps antes do código, para cache).
   - `COPY src/ /app/src/` e `COPY models/ /app/models/`.
   - Usuário não-root (`useradd -r app`).
   - `EXPOSE 8000`; `HEALTHCHECK` usando `python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"` (a imagem slim não tem `curl`).
   - `CMD ["uvicorn", "triage.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]` — **1 worker** (R11).
-- [ ] [OBRIG] `.dockerignore`: `.git`, `.venv`, `data/`, `reports/`, `tests/`, `docs/`, `airflow/logs`, `models/candidates`, caches.
-- [ ] [OBRIG] `scripts/benchmark_api.py` (será reutilizado **sem mudanças** na Etapa 7):
+- [x] [OBRIG] `.dockerignore`: `.git`, `.venv`, `data/`, `reports/`, `tests/`, `docs/`, `airflow/logs`, `models/candidates`, caches.
+- [x] [OBRIG] `scripts/benchmark_api.py` (será reutilizado **sem mudanças** na Etapa 7):
   - Args: `--url` (padrão `http://localhost:8000`), `--n 1000`, `--warmup 50`, `--concurrency 1`, `--label` (ex.: `sklearn`), `--seed 42`, `--out reports/latency/api_<label>.json`.
   - Amostra textos de `data/raw/medical_tc_test.csv` com seed fixa; `httpx.Client` com keep-alive; mede com `time.perf_counter_ns` o tempo total de cada request.
   - Saída JSON: `mean_ms`, `p50_ms`, `p95_ms`, `p99_ms`, `min_ms`, `max_ms`, `throughput_rps`, `n`, `errors`, e bloco `environment` (`platform`, CPU, `docker` sim/não, data/hora, `model_version`, `backend` lido de `/health`).
-- [ ] [OBRIG] Medir baseline: `make docker-build && docker run --rm -p 8000:8000 triage-api:local` → `make bench-api BACKEND=sklearn` → commitar `reports/latency/api_sklearn.json`.
-- [ ] [REC] Definir e registrar um SLO de referência a partir do baseline (ex.: "p95 ponta a ponta < 50 ms local") — usado no "Task" do vídeo.
+- [x] [OBRIG] Medir baseline: `make docker-build && docker run --rm -p 8000:8000 triage-api:local` → `make bench-api BACKEND=sklearn` → commitar `reports/latency/api_sklearn.json`.
+- [x] [REC] Definir e registrar um SLO de referência a partir do baseline (ex.: "p95 ponta a ponta < 50 ms local") — usado no "Task" do vídeo.
 
 **Critérios de aceite:**
 - `docker run` + `curl -X POST localhost:8000/predict -H 'Content-Type: application/json' -d '{"text":"Acute ischemic stroke with left hemiparesis..."}'` retorna JSON conforme contrato.
@@ -544,7 +544,7 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `make lint && make test` verdes localmente; `Dockerfile` builda localmente.
 
 **Tarefas:**
-- [ ] [OBRIG] `.github/workflows/ci.yml`:
+- [x] [OBRIG] `.github/workflows/ci.yml`:
   - `on: push` (todas as branches) e `pull_request` para `main`; `workflow_dispatch`.
   - `concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }`.
   - `permissions: contents: read` (no topo).
@@ -958,7 +958,14 @@ Cortar **nesta ordem**, sem nunca tocar em itens [OBRIG]:
 |---|---|---|---|
 | 15/09/2026 | — | Dataset Medical Abstracts TC Corpus com mapeamento 5→3 (§3.2) | Download sem login, ≥ 2.000 amostras, classes balanceadas após mapeamento |
 | 15/09/2026 | — | scikit-learn 1.8.0 + skl2onnx 1.20.0 | Compatibilidade do conversor |
-| | 1 | Resultado do spike ONNX: | |
-| | 1 | F1 macro baseline / gate definido: | |
-| | 2 | SLO de latência definido: | |
+| 15/09/2026 | 0 | Python 3.12.13 instalado via `uv python install 3.12`; `make setup` usa `python3.12` ou cai para `uv venv --seed` | Máquina só tinha 3.9 (sistema) e 3.11 (pyenv) |
+| 15/09/2026 | 0 | `*.md` excluído do ruff | ruff 0.16 formata blocos de código dentro de Markdown e reescreveria este guia |
+| 15/09/2026 | 0 | `data/processed/` e `models/candidates/` sem `.gitkeep` | Diretórios estão no `.gitignore`; o código os cria com `mkdir(parents=True)` |
+| 15/09/2026 | 0 | Pins resolvidos: fastapi 0.141.1, uvicorn 0.53.0, pydantic 2.13.5, numpy 2.5.3, pandas 2.3.3, joblib 1.6.0, onnx 1.22.0, onnxruntime 1.30.0, prometheus-client 0.26.0, ruff 0.16.7, pytest 9.1.1 | §3.1 manda pinar as versões instaladas. pandas fixado em 2.x (3.0 é major recente) |
+| 15/09/2026 | 1 | **Spike ONNX:** config do guia (`sublinear_tf=True`) deu 99,2% em 500 textos, mas **98,75% no teste completo** (abaixo do limiar), mediana de dif. de proba 5,4e-3. Aplicados fallbacks (1)+(2): **`sublinear_tf=False`** no treino e, na conversão (Etapa 7), `options={TfidfVectorizer: {"tokenexp": r"\b\w\w+\b"}, LogisticRegression: {"zipmap": False}}` → **100% de concordância**, mediana de dif. 3,1e-8, máx. 2,2e-2 (3 de 2.888 textos > 1e-4) | Com `sublinear_tf=True` + `tokenexp` ficava em 99,58%, com divergência sistemática em quase todos os textos. Sem `sublinear_tf` o F1 ainda subiu (0,6029 → 0,6078) |
+| 15/09/2026 | 1 | **F1 macro baseline 0,6078** (accuracy 0,6115; F1 normal 0,456 / atencao 0,705 / urgente 0,662). Gate `TRIAGE_QUALITY_GATE_F1=0.58` | F1 − 0,03 conforme o guia. Classe `normal` (cond. 5, heterogênea) é a mais fraca, como previsto em §3.2 |
+| 15/09/2026 | 2 | `pandas` adicionado a `requirements/api.txt` | A API importa `triage.data.normalize_text` (contrato §3.4) e `triage.data` importa pandas no topo; sem ele o container não sobe |
+| 15/09/2026 | 2 | Baseline HTTP em Docker (Docker Desktop, Apple Silicon, concorrência 1, n=1000): **p50 1,31 ms · p95 1,72 ms · p99 2,13 ms**, ~751 rps, 0 erros. Repetição: p95 1,66 ms (variação ~10%) | `reports/latency/api_sklearn.json` |
+| 15/09/2026 | 2 | **SLO de referência: p95 ponta a ponta < 10 ms** (local, Docker, concorrência 1) | ~6× de folga sobre o baseline; os 50 ms do exemplo seriam folgados demais para evidenciar ganho |
+| 15/09/2026 | 3 | Actions nas majors atuais: checkout@v7, setup-python@v7, upload-artifact@v7, docker/setup-buildx@v4, login@v4, metadata@v6, build-push@v7. Workflow validado com actionlint; jobs lint/test/build simulados em clone limpo | Tags consultadas na API do GitHub em 15/09/2026 |
 | | 6 | Tags fixas de Prometheus/Grafana: | |
