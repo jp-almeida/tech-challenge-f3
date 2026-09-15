@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0–3 concluídas; Etapa 4 implementada e validada, faltando os prints da UI do Airflow.
+> **Status:** Etapas 0–3 e 5 concluídas; Etapa 4 implementada e validada, faltando os prints da UI do Airflow.
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -653,19 +653,19 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `make test` verde; API sobe localmente com `make api`.
 
 **Tarefas:**
-- [ ] [OBRIG] `src/triage/api/metrics.py`:
+- [x] [OBRIG] `src/triage/api/metrics.py`:
   - Definir as métricas de §3.7 **no nível do módulo** (uma única vez por processo). **Nunca** criar métricas dentro de `create_app` (erro "Duplicated timeseries in CollectorRegistry" nos testes).
   - Middleware HTTP (`@app.middleware("http")` ou classe ASGI):
     1. Se path == `/metrics`, só repassa.
     2. Resolver `handler` iterando `request.app.routes` e usando `route.matches(request.scope)` → `route.path` se `Match.FULL`, senão `"unmatched"`.
     3. `start = perf_counter()`; `try: response = await call_next(request)`; `except Exception: status = 500; raise`; `finally:` observar histograma e incrementar contador com `status` (string do código).
   - Helpers: `observe_inference(backend, seconds)`, `count_prediction(label, backend)`, `set_model_info(version, backend)`.
-- [ ] [OBRIG] Em `main.py`: registrar middleware; rota `GET /metrics` retornando `Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)` (rota explícita em vez de `app.mount`, que pode causar redirect `/metrics` → `/metrics/`); chamar os helpers no `/predict` e `set_model_info` no lifespan.
-- [ ] [OBRIG] `tests/test_metrics.py`:
+- [x] [OBRIG] Em `main.py`: registrar middleware; rota `GET /metrics` retornando `Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)` (rota explícita em vez de `app.mount`, que pode causar redirect `/metrics` → `/metrics/`); chamar os helpers no `/predict` e `set_model_info` no lifespan.
+- [x] [OBRIG] `tests/test_metrics.py`:
   - Após um `POST /predict`, o texto de `/metrics` contém `triage_http_requests_total{handler="/predict",method="POST",status="200"}` e `triage_predictions_total`.
   - Após um 422, existe série com `status="422"`.
   - Usar diferença de valores (antes/depois) via `REGISTRY.get_sample_value(...)` — contadores são globais entre testes.
-- [ ] [OBRIG] Rebuild da imagem e verificar `curl localhost:8000/metrics | grep triage_`.
+- [x] [OBRIG] Rebuild da imagem e verificar `curl localhost:8000/metrics | grep triage_`.
 
 **Critérios de aceite:**
 - `/metrics` expõe as 5 métricas obrigatórias do contrato com labels corretos.
@@ -976,4 +976,6 @@ Cortar **nesta ordem**, sem nunca tocar em itens [OBRIG]:
 | 15/09/2026 | 4 | `quality_gate` com `retries=0`; validado que `--conf '{"min_f1": 0.99}'` falha o run e **não** promove (artefatos inalterados) | Reexecutar não muda o F1; retry só atrasaria a falha |
 | 15/09/2026 | 4 | `tests/test_dag.py` usa `airflow.dag_processing.dagbag.DagBag(dag_folder=...)` **sem** `include_examples` (removido no 3.3). Roda na imagem via `make test-dag`; no `.venv`/CI é pulado | `TypeError` com a assinatura antiga |
 | 15/09/2026 | 4 | **Handoff p/ Etapa 6:** o serviço `api` deve montar `./models:/app/models:ro`, senão `docker compose restart api` continua servindo o modelo copiado no build | O `Dockerfile` faz `COPY models/` |
+| 15/09/2026 | 5 | Implementadas só as 5 métricas [OBRIG] de §3.7; as [OPC] (`triage_http_requests_in_progress`, `triage_request_text_length_chars`) ficaram de fora | Plano de corte §6 as lista como primeiras a sair; entram na Etapa 6 se algum painel precisar |
+| 15/09/2026 | 5 | Verificado no container: 404 → `handler="unmatched"`, `/metrics` não se autocontabiliza, exceção não tratada conta como `status="500"` | Critérios de aceite da Etapa 5 e armadilhas de cardinalidade |
 | | 6 | Tags fixas de Prometheus/Grafana: | |
