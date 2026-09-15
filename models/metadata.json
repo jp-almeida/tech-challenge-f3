@@ -1,6 +1,6 @@
 {
-  "model_version": "20260915T231014Z",
-  "trained_at": "2026-09-15T23:10:14Z",
+  "model_version": "20260915T234937Z",
+  "trained_at": "2026-09-15T23:49:37Z",
   "dataset": "medical-abstracts-tc-corpus",
   "label_mapping": {
     "1": "atencao",
@@ -40,12 +40,14 @@
     "onnxruntime": "1.30.0"
   },
   "onnx": {
-    "available": false,
-    "parity_label_agreement": null,
-    "max_abs_proba_diff": null
+    "available": true,
+    "parity_label_agreement": 1.0,
+    "max_abs_proba_diff": 0.022460372390160854,
+    "median_abs_proba_diff": 3.049154245760022e-08,
+    "parity_n": 2888
   },
   "n_train": 11550,
   "n_test": 2888,
   "trained_by": "airflow",
-  "airflow_run_id": "manual__2026-09-15T23:09:58.213264+00:00"
+  "airflow_run_id": "manual__2026-09-15T23:49:22.844494+00:00"
 }
