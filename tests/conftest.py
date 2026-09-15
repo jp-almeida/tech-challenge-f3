@@ -38,6 +38,20 @@ def project_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, P
 
 
 @pytest.fixture(scope="session")
+def onnx_model_dir(trained_model_dir: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Cópia de trained_model_dir com model.onnx exportado ao lado do model.joblib."""
+    import joblib
+
+    from triage.export_onnx import ONNX_FILENAME, convert_to_onnx
+
+    out = tmp_path_factory.mktemp("model_onnx")
+    for name in ("model.joblib", "metadata.json"):
+        shutil.copyfile(trained_model_dir / name, out / name)
+    (out / ONNX_FILENAME).write_bytes(convert_to_onnx(joblib.load(out / "model.joblib")))
+    return out
+
+
+@pytest.fixture(scope="session")
 def trained_model_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Modelo pequeno treinado na fixture, com model.joblib + metadata.json."""
     from triage.data import load_raw, map_labels
