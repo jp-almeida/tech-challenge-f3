@@ -5,11 +5,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONPATH=/app/src \
     TRIAGE_MODEL_DIR=/app/models \
-    TRIAGE_MODEL_BACKEND=sklearn \
+    TRIAGE_MODEL_BACKEND=onnx \
     TRIAGE_ORT_THREADS=1 \
     TRIAGE_LOG_LEVEL=INFO
 
 WORKDIR /app
+
+# O operador StringNormalizer do ONNX Runtime abre o locale en_US.UTF-8, que não existe
+# na imagem slim: sem isso a sessão ONNX falha em "Failed to construct locale".
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends locales \
+    && sed -i '/^# *en_US.UTF-8 UTF-8/s/^# *//' /etc/locale.gen \
+    && locale-gen \
+    && rm -rf /var/lib/apt/lists/*
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 RUN useradd --system --no-create-home --uid 10001 app
 

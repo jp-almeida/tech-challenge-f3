@@ -5,8 +5,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Etapa 7 troca para onnx.
-      TRIAGE_MODEL_BACKEND: sklearn
+      TRIAGE_MODEL_BACKEND: onnx
       TRIAGE_ORT_THREADS: "1"
       TRIAGE_LOG_LEVEL: INFO
     volumes:
