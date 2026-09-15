@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0–6 concluídas. Próxima: Etapa 7 (ONNX).
+> **Status:** Etapas 0–7 concluídas. Próxima: Etapa 8 (README e decisão de nuvem).
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -746,26 +746,26 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `reports/latency/api_sklearn.json` existe; decisão do spike registrada.
 
 **Tarefas:**
-- [ ] [OBRIG] `src/triage/export_onnx.py`:
+- [x] [OBRIG] `src/triage/export_onnx.py`:
   - `convert_to_onnx(pipeline) -> bytes`: `to_onnx` com `initial_types=[("text", StringTensorType([None, 1]))]`, `options={LogisticRegression: {"zipmap": False}}` (probabilidades como tensor — mais rápido e simples que lista de dicts), `target_opset` explícito e compatível com o onnxruntime instalado; opções de TF-IDF definidas no spike.
   - `check_parity(pipeline, onnx_path, texts) -> {"label_agreement", "max_abs_proba_diff", "n"}` sobre **todo** o conjunto de teste.
   - Critério de aceitação: `label_agreement ≥ 0.995` e `max_abs_proba_diff ≤ 1e-3`; abaixo disso, falhar com relatório das divergências.
-- [ ] [OBRIG] `pipeline.export_onnx(...)` (contrato §3.4) + subcomando CLI `export-onnx`; incluir no `run-all`; `promote` passa a copiar `model.onnx` e preencher o bloco `onnx` do `metadata.json`.
-- [ ] [OBRIG] `OnnxPredictor` em `predictor.py`:
+- [x] [OBRIG] `pipeline.export_onnx(...)` (contrato §3.4) + subcomando CLI `export-onnx`; incluir no `run-all`; `promote` passa a copiar `model.onnx` e preencher o bloco `onnx` do `metadata.json`.
+- [x] [OBRIG] `OnnxPredictor` em `predictor.py`:
   - `SessionOptions`: `graph_optimization_level = ORT_ENABLE_ALL`, `intra_op_num_threads = TRIAGE_ORT_THREADS` (1), `inter_op_num_threads = 1`; `providers=["CPUExecutionProvider"]`.
   - Descobrir nomes de entrada/saída com `session.get_inputs()`/`get_outputs()` (não hardcodar; saída de probabilidades é a de shape `[N, 3]`).
   - Entrada: `np.array(texts, dtype=object).reshape(-1, 1)`.
   - `load_predictor` passa a aceitar `"onnx"`.
-- [ ] [OBRIG] Gerar `models/model.onnx` com `make train` (ou `export-onnx`), commitar artefatos e `metadata.json` atualizado.
-- [ ] [OBRIG] `tests/test_onnx.py`: converter o modelo da fixture `trained_model_dir`, paridade ≥ 0.99 nos textos da fixture; `/predict` com `TRIAGE_MODEL_BACKEND=onnx` retorna `backend == "onnx"` e probabilidades ≈ sklearn (`atol=1e-3`).
-- [ ] [OBRIG] `scripts/benchmark_models.py` (in-process, sem HTTP):
+- [x] [OBRIG] Gerar `models/model.onnx` com `make train` (ou `export-onnx`), commitar artefatos e `metadata.json` atualizado.
+- [x] [OBRIG] `tests/test_onnx.py`: converter o modelo da fixture `trained_model_dir`, paridade ≥ 0.99 nos textos da fixture; `/predict` com `TRIAGE_MODEL_BACKEND=onnx` retorna `backend == "onnx"` e probabilidades ≈ sklearn (`atol=1e-3`).
+- [x] [OBRIG] `scripts/benchmark_models.py` (in-process, sem HTTP):
   - Carrega `model.joblib` e `model.onnx`; amostra textos do teste (seed 42); warm-up 100; **2.000 iterações** para batch 1 e **200** para batch 32.
   - Mede `pipeline.predict_proba(batch)` vs `session.run(...)` com `perf_counter_ns`; cada backend aplica `normalize_text` igual.
   - sklearn com threads controladas (ex.: env `OMP_NUM_THREADS=1`) para comparação justa.
   - Saída: `reports/latency/models_comparison.json` (mean/p50/p95/p99/throughput por backend × batch, speedup = sklearn/onnx no p50 e p95, tamanho dos arquivos em disco, paridade) + `reports/latency/comparison.md` (tabela pronta para o README) + [REC] `latency_comparison.png` (barras p50/p95; matplotlib).
-- [ ] [OBRIG] Benchmark ponta a ponta com **os mesmos parâmetros** da Etapa 2: subir a API com `TRIAGE_MODEL_BACKEND=onnx` (rebuild, sem Airflow rodando) → `make bench-api BACKEND=onnx` → `reports/latency/api_onnx.json`. Consolidar sklearn vs onnx no `comparison.md`.
-- [ ] [OBRIG] Trocar o padrão para `onnx` no `Dockerfile` e no `docker-compose.yml`.
-- [ ] [REC] Adicionar a task `export_onnx` na DAG (se a Etapa 4 ainda não incluiu) e rodar a DAG uma vez de novo.
+- [x] [OBRIG] Benchmark ponta a ponta com **os mesmos parâmetros** da Etapa 2: subir a API com `TRIAGE_MODEL_BACKEND=onnx` (rebuild, sem Airflow rodando) → `make bench-api BACKEND=onnx` → `reports/latency/api_onnx.json`. Consolidar sklearn vs onnx no `comparison.md`.
+- [x] [OBRIG] Trocar o padrão para `onnx` no `Dockerfile` e no `docker-compose.yml`.
+- [x] [REC] Adicionar a task `export_onnx` na DAG (se a Etapa 4 ainda não incluiu) e rodar a DAG uma vez de novo.
 - [ ] [OPC] Segunda técnica: *pruning de vocabulário* (comparar `max_features` 50k vs 20k vs 5k: F1 × latência × tamanho do ONNX) — é barato e rende um bom gráfico de trade-off. Quantização dinâmica (`onnxruntime.quantization.quantize_dynamic`) tende a ter pouco efeito aqui, porque TF-IDF e o classificador linear são operadores do domínio `ai.onnx.ml`, não MatMul/Gemm — **não investir tempo**, apenas citar como lição aprendida se testar.
 - [ ] [OPC] Incluir RandomForest no benchmark (o ganho do ONNX sobre sklearn costuma ser mais dramático em ensembles de árvores).
 
@@ -982,4 +982,10 @@ Cortar **nesta ordem**, sem nunca tocar em itens [OBRIG]:
 | 15/09/2026 | 6 | Dashboard escrito à mão (não exportado da UI), com `"uid": "prometheus"` literal em cada painel | Evita a armadilha do `${DS_PROMETHEUS}` do "Export for sharing externally" |
 | 15/09/2026 | 6 | Painéis 1–6 implementados; painel 7 (`triage_model_info`) [OPC] ficou de fora | Plano de corte §6; o `model_version` já aparece em `/health` e `/model/info` |
 | 15/09/2026 | 6 | `depends_on: api: condition: service_healthy` no Prometheus | Evita scrape falhando enquanto a API ainda carrega o modelo |
-| | 6 | Tags fixas de Prometheus/Grafana: | |
+| 15/09/2026 | 6 | Tags fixas: ver linha acima | — |
+| 15/09/2026 | 7 | **Gate de paridade usa mediana e p99,9 (≤ 1e-3), não o máximo absoluto.** Resultado: concordância **100%** em 2.888 textos, mediana 3,1e-8, p99,9 9,0e-4, máximo 2,2e-2 em 3 textos | O `TfIdfVectorizer` do ONNX monta n-gramas a partir do pool de unigramas e descarta bigramas cujo componente foi podado. Aqui isso atinge **1 de 12.673 bigramas** (`"von hippel"`, porque `hippel` caiu por `min_df=2`); a renormalização L2 desloca as probabilidades desses 3 textos sem trocar rótulo. Um teto no máximo reprovaria por 3 casos benignos |
+| 15/09/2026 | 7 | `skl2onnx` importado de forma preguiçosa dentro de `convert_to_onnx` | O `OnnxPredictor` importava `triage.export_onnx`, que puxava `skl2onnx` (dependência só de treino) e quebrava a imagem da API com `ModuleNotFoundError`. A imagem continua sem o conversor |
+| 15/09/2026 | 7 | **Locale `en_US.UTF-8` gerado nas imagens da API e do Airflow** (+63 MB na imagem da API) | O operador `StringNormalizer` do ONNX Runtime abre esse locale por nome; `python:3.12-slim` e a imagem do Airflow trazem só `C.utf8`, e a sessão falhava com "Failed to construct locale". Funcionava no macOS e só quebrou no container |
+| 15/09/2026 | 7 | Speedup p50: **2,34× in-process (batch 1)**, 1,58× (batch 32), **1,34× ponta a ponta via HTTP**. ONNX 0,80 MB vs joblib 1,21 MB | `reports/latency/comparison.md`. O ganho menor no HTTP é esperado: o overhead de rede/serialização domina — explicar isso no README e no vídeo |
+| 15/09/2026 | 7 | `export_onnx` adicionado à DAG entre `quality_gate` e `promote_model`; `test_dag` passou a verificar o gate como upstream transitivo | Mantém a garantia de que não se promove sem passar pelo gate |
+| 15/09/2026 | 7 | Itens [OPC] (pruning de vocabulário, RandomForest no benchmark) não implementados | Plano de corte §6; o ganho do ONNX já está demonstrado com números reais |
