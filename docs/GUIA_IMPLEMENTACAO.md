@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0–5 concluídas. Próxima: Etapa 6 (Compose + Prometheus + Grafana).
+> **Status:** Etapas 0–5 concluídas; Etapa 6 implementada e validada, faltando o print do dashboard. Próxima: Etapa 7 (ONNX).
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -692,15 +692,15 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `curl localhost:8000/metrics | grep triage_http_requests_total` retorna algo com a imagem atual.
 
 **Tarefas:**
-- [ ] [OBRIG] `docker-compose.yml` (manter o serviço `airflow` da Etapa 4 no profile):
+- [x] [OBRIG] `docker-compose.yml` (manter o serviço `airflow` da Etapa 4 no profile):
   - `api`: `build: .`, `ports: ["8000:8000"]`, `environment: TRIAGE_MODEL_BACKEND` (sklearn até a Etapa 7; depois onnx), `volumes: ["./models:/app/models:ro"]` (pega modelos promovidos pelo Airflow após restart), `healthcheck` (mesmo comando do Dockerfile), `restart: unless-stopped`.
   - `prometheus`: `image: prom/prometheus:<tag fixa>`, `ports: ["9090:9090"]`, volume `./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro`, volume nomeado `prometheus-data`, `depends_on: api`.
   - `grafana`: `image: grafana/grafana:<tag fixa>`, `ports: ["3000:3000"]`, env `GF_SECURITY_ADMIN_USER=admin`, `GF_SECURITY_ADMIN_PASSWORD=admin`, `GF_AUTH_ANONYMOUS_ENABLED=true`, `GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer`, volumes `./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro`, `./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro`, `grafana-data`; `depends_on: prometheus`.
-- [ ] [OBRIG] `monitoring/prometheus/prometheus.yml`: `global.scrape_interval: 5s`; jobs `triage-api` (`targets: ["api:8000"]`, `metrics_path: /metrics`) e `prometheus` (`localhost:9090`).
-- [ ] [OBRIG] `monitoring/grafana/provisioning/datasources/prometheus.yml`: `name: Prometheus`, **`uid: prometheus`**, `type: prometheus`, `access: proxy`, `url: http://prometheus:9090`, `isDefault: true`.
-- [ ] [OBRIG] `monitoring/grafana/provisioning/dashboards/dashboards.yml`: provider tipo `file` apontando para `/var/lib/grafana/dashboards`, `allowUiUpdates: true`.
-- [ ] [OBRIG] `scripts/load_test.py`: args `--url`, `--duration 120`, `--rps 20`, `--error-ratio 0.05`; envia textos reais do CSV de teste e, na proporção de erro, payloads inválidos (texto vazio, campo ausente → 422) e rota inexistente (404). Imprime resumo ao final.
-- [ ] [OBRIG] Dashboard `monitoring/grafana/dashboards/triage-api.json` (`uid: "triage-api"`, `title: "Triagem de Laudos — API"`, `refresh: "5s"`, `time: now-15m`). Montar na UI e exportar o JSON (ou escrever direto). Datasource de cada painel: `{"type": "prometheus", "uid": "prometheus"}`. Painéis (**mínimo exigido: 3 — os 4 primeiros cobrem o exemplo do enunciado**):
+- [x] [OBRIG] `monitoring/prometheus/prometheus.yml`: `global.scrape_interval: 5s`; jobs `triage-api` (`targets: ["api:8000"]`, `metrics_path: /metrics`) e `prometheus` (`localhost:9090`).
+- [x] [OBRIG] `monitoring/grafana/provisioning/datasources/prometheus.yml`: `name: Prometheus`, **`uid: prometheus`**, `type: prometheus`, `access: proxy`, `url: http://prometheus:9090`, `isDefault: true`.
+- [x] [OBRIG] `monitoring/grafana/provisioning/dashboards/dashboards.yml`: provider tipo `file` apontando para `/var/lib/grafana/dashboards`, `allowUiUpdates: true`.
+- [x] [OBRIG] `scripts/load_test.py`: args `--url`, `--duration 120`, `--rps 20`, `--error-ratio 0.05`; envia textos reais do CSV de teste e, na proporção de erro, payloads inválidos (texto vazio, campo ausente → 422) e rota inexistente (404). Imprime resumo ao final.
+- [x] [OBRIG] Dashboard `monitoring/grafana/dashboards/triage-api.json` (`uid: "triage-api"`, `title: "Triagem de Laudos — API"`, `refresh: "5s"`, `time: now-15m`). Montar na UI e exportar o JSON (ou escrever direto). Datasource de cada painel: `{"type": "prometheus", "uid": "prometheus"}`. Painéis (**mínimo exigido: 3 — os 4 primeiros cobrem o exemplo do enunciado**):
 
   | # | Painel | Tipo | PromQL | Prioridade |
   |---|---|---|---|---|
@@ -712,8 +712,8 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
   | 6 | Distribuição das predições por classe | Pie chart / Bar gauge | `sum by (label) (increase(triage_predictions_total[$__range]))` | [REC] |
   | 7 | Versão do modelo / backend em produção | Table ou Stat | `triage_model_info` | [OPC] |
 
-- [ ] [OBRIG] Rodar `make up`, `make load-test`, esperar ~2 min, conferir todos os painéis com dados. Print de tela inteira → `docs/images/grafana-dashboard.png`. Commitar o JSON (entregável "print/JSON").
-- [ ] [REC] Seção "Monitoramento" no README com URLs, credenciais e print (pode ser rascunho; a Etapa 8 finaliza).
+- [ ] [OBRIG] Rodar `make up`, `make load-test`, esperar ~2 min, conferir todos os painéis com dados. Print de tela inteira → `docs/images/grafana-dashboard.png`. Commitar o JSON (entregável "print/JSON"). — *parcial: stack validada (target UP, dashboard provisionado, painéis 1–6 com dados após o load test); print pendente (ação manual).*
+- [x] [REC] Seção "Monitoramento" no README com URLs, credenciais e print (pode ser rascunho; a Etapa 8 finaliza).
 
 **Critérios de aceite:**
 - Clonar o repo limpo + `docker compose up -d --build` → em ≤ 2 min: `localhost:8000/health` ok, `localhost:9090/targets` com `triage-api` **UP**, `localhost:3000` com o dashboard "Triagem de Laudos — API" já presente (sem configuração manual).
@@ -978,4 +978,8 @@ Cortar **nesta ordem**, sem nunca tocar em itens [OBRIG]:
 | 15/09/2026 | 4 | **Handoff p/ Etapa 6:** o serviço `api` deve montar `./models:/app/models:ro`, senão `docker compose restart api` continua servindo o modelo copiado no build | O `Dockerfile` faz `COPY models/` |
 | 15/09/2026 | 5 | Implementadas só as 5 métricas [OBRIG] de §3.7; as [OPC] (`triage_http_requests_in_progress`, `triage_request_text_length_chars`) ficaram de fora | Plano de corte §6 as lista como primeiras a sair; entram na Etapa 6 se algum painel precisar |
 | 15/09/2026 | 5 | Verificado no container: 404 → `handler="unmatched"`, `/metrics` não se autocontabiliza, exceção não tratada conta como `status="500"` | Critérios de aceite da Etapa 5 e armadilhas de cardinalidade |
+| 15/09/2026 | 6 | **Tags fixas: `prom/prometheus:v3.14.0` e `grafana/grafana:13.2.2`** | Últimas estáveis em 15/09/2026 (Docker Hub); nunca `latest` |
+| 15/09/2026 | 6 | Dashboard escrito à mão (não exportado da UI), com `"uid": "prometheus"` literal em cada painel | Evita a armadilha do `${DS_PROMETHEUS}` do "Export for sharing externally" |
+| 15/09/2026 | 6 | Painéis 1–6 implementados; painel 7 (`triage_model_info`) [OPC] ficou de fora | Plano de corte §6; o `model_version` já aparece em `/health` e `/model/info` |
+| 15/09/2026 | 6 | `depends_on: api: condition: service_healthy` no Prometheus | Evita scrape falhando enquanto a API ainda carrega o modelo |
 | | 6 | Tags fixas de Prometheus/Grafana: | |
