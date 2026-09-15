@@ -1,6 +1,6 @@
 {
-  "model_version": "20260915T223812Z",
-  "trained_at": "2026-09-15T22:38:12Z",
+  "model_version": "20260915T231014Z",
+  "trained_at": "2026-09-15T23:10:14Z",
   "dataset": "medical-abstracts-tc-corpus",
   "label_mapping": {
     "1": "atencao",
@@ -45,5 +45,7 @@
     "max_abs_proba_diff": null
   },
   "n_train": 11550,
-  "n_test": 2888
+  "n_test": 2888,
+  "trained_by": "airflow",
+  "airflow_run_id": "manual__2026-09-15T23:09:58.213264+00:00"
 }
