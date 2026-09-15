@@ -69,3 +69,47 @@ jobs:
             reports/junit.xml
             reports/coverage.xml
           if-no-files-found: warn
+
+  build:
+    name: Docker build + smoke test
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: triage-api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t "$IMAGE" .
+
+      - name: Start container
+        run: docker run -d --name triage-api -p 8000:8000 "$IMAGE"
+
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/health; then
+              echo; echo "healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy within 60s" >&2
+          exit 1
+
+      - name: Smoke test /predict
+        run: |
+          response=$(curl -sf -X POST http://localhost:8000/predict \
+            -H 'Content-Type: application/json' \
+            -d '{"text": "Acute ischemic stroke with left hemiparesis and aphasia."}')
+          echo "$response"
+          echo "$response" | python3 -c '
+          import json, sys
+          body = json.load(sys.stdin)
+          assert body["label"] in {"normal", "atencao", "urgente"}, body
+          assert abs(sum(body["probabilities"].values()) - 1) < 1e-4, body
+          print("predict OK:", body["label"])
+          '
+
+      - name: Container logs
+        if: failure()
+        run: docker logs triage-api
