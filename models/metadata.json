@@ -1,0 +1,49 @@
+{
+  "model_version": "20260915T223812Z",
+  "trained_at": "2026-09-15T22:38:12Z",
+  "dataset": "medical-abstracts-tc-corpus",
+  "label_mapping": {
+    "1": "atencao",
+    "2": "atencao",
+    "3": "urgente",
+    "4": "urgente",
+    "5": "normal"
+  },
+  "labels": [
+    "normal",
+    "atencao",
+    "urgente"
+  ],
+  "params": {
+    "max_features": 20000,
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "sublinear_tf": false,
+    "C": 1.0
+  },
+  "metrics": {
+    "accuracy": 0.6114958448753463,
+    "f1_macro": 0.6077782680373546,
+    "f1_per_class": {
+      "normal": 0.45604395604395603,
+      "atencao": 0.7052083333333333,
+      "urgente": 0.6620825147347741
+    }
+  },
+  "versions": {
+    "python": "3.12.13",
+    "scikit-learn": "1.8.0",
+    "skl2onnx": "1.20.0",
+    "onnxruntime": "1.30.0"
+  },
+  "onnx": {
+    "available": false,
+    "parity_label_agreement": null,
+    "max_abs_proba_diff": null
+  },
+  "n_train": 11550,
+  "n_test": 2888
+}
