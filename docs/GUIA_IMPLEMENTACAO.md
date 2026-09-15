@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0–3 e 5 concluídas; Etapa 4 implementada e validada, faltando os prints da UI do Airflow.
+> **Status:** Etapas 0–5 concluídas. Próxima: Etapa 6 (Compose + Prometheus + Grafana).
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -617,7 +617,7 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
   - `candidate_dir = models/candidates/<run_id sanitizado>`; retries: `retries=1`, `retry_delay=timedelta(minutes=1)` [REC].
   - Encadeamento: `ingest → train → evaluate → quality_gate → export_onnx → promote`.
 - [x] [OBRIG] Validar sem scheduler: `docker compose --profile airflow run --rm airflow airflow dags test triage_training` (executa a DAG inteira e mostra logs no terminal). Depois verificar `airflow dags list-import-errors` vazio.
-- [ ] [OBRIG] Subir `make up-airflow`, abrir `http://localhost:8080`, disparar a DAG pela UI, confirmar todas as tasks verdes. Prints → `docs/images/airflow-dag-graph.png` e `airflow-dag-run.png`. — *parcial: stack no ar e run disparado pelo scheduler com as 5 tasks em sucesso; prints pendentes (ação manual).*
+- [x] [OBRIG] Subir `make up-airflow`, abrir `http://localhost:8080`, disparar a DAG pela UI, confirmar todas as tasks verdes. Prints → `docs/images/airflow-dag-graph.png` e `airflow-dag-run.png`.
 - [x] [REC] `tests/test_dag.py`: `pytest.importorskip("airflow")`; carregar `DagBag(dag_folder="airflow/dags", include_examples=False)`; assert sem `import_errors`, `task_ids` esperados e ordem das dependências.
 - [x] [REC] Após a promoção, documentar como a API pega o novo modelo: `docker compose restart api` (ou [OPC] task final chamando `POST http://api:8000/admin/reload`, exigindo mesma rede do Compose). — *atenção: o `Dockerfile` da API copia `models/` para a imagem; na Etapa 6 o serviço `api` precisa montar `./models:/app/models:ro` para o restart pegar o modelo novo.*
 
