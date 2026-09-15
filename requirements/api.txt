@@ -1,0 +1,9 @@
+# Runtime do serviço de inferência (Etapas 2, 5, 7)
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic==2.13.5
+scikit-learn==1.8.0
+numpy==2.5.3
+joblib==1.6.0
+prometheus-client==0.26.0
+onnxruntime==1.30.0

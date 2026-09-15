@@ -1,0 +1,8 @@
+-r api.txt
+-r train.txt
+
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx==0.28.1
+ruff==0.16.7
+matplotlib==3.11.2
