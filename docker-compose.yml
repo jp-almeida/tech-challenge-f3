@@ -1,0 +1,30 @@
+services:
+  # Orquestração do treino. Fora do `docker compose up` padrão:
+  #   docker compose --profile airflow up -d --build   (UI em http://localhost:8080)
+  airflow:
+    profiles: ["airflow"]
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    image: triage-airflow:local
+    command: standalone
+    user: "${AIRFLOW_UID:-50000}:0"
+    ports:
+      # AIRFLOW_PORT permite trocar a porta do host se a 8080 estiver ocupada.
+      - "${AIRFLOW_PORT:-8080}:8080"
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      # SOMENTE DEV: desliga o login da UI.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+      PYTHONPATH: /opt/airflow/src
+      TRIAGE_DATA_DIR: /opt/airflow/project/data
+      TRIAGE_MODEL_DIR: /opt/airflow/project/models
+      TRIAGE_REPORTS_DIR: /opt/airflow/project/reports
+      TRIAGE_QUALITY_GATE_F1: "0.58"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./src:/opt/airflow/src
+      - ./data:/opt/airflow/project/data
+      - ./models:/opt/airflow/project/models
+      - ./reports:/opt/airflow/project/reports
