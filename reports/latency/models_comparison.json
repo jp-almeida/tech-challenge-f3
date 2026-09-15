@@ -1,0 +1,125 @@
+{
+  "in_process": {
+    "sklearn": {
+      "1": {
+        "mean_ms": 0.2229,
+        "p50_ms": 0.2194,
+        "p95_ms": 0.2686,
+        "p99_ms": 0.3118,
+        "min_ms": 0.1684,
+        "max_ms": 0.3845,
+        "throughput_rps": 4487.0,
+        "iterations": 2000
+      },
+      "32": {
+        "mean_ms": 2.397,
+        "p50_ms": 2.3782,
+        "p95_ms": 2.6962,
+        "p99_ms": 2.741,
+        "min_ms": 2.0532,
+        "max_ms": 2.7664,
+        "throughput_rps": 13349.8,
+        "iterations": 200
+      }
+    },
+    "onnx": {
+      "1": {
+        "mean_ms": 0.0957,
+        "p50_ms": 0.0938,
+        "p95_ms": 0.1175,
+        "p99_ms": 0.1309,
+        "min_ms": 0.0769,
+        "max_ms": 0.394,
+        "throughput_rps": 10449.1,
+        "iterations": 2000
+      },
+      "32": {
+        "mean_ms": 1.5148,
+        "p50_ms": 1.5089,
+        "p95_ms": 1.6171,
+        "p99_ms": 1.6511,
+        "min_ms": 1.3743,
+        "max_ms": 1.7004,
+        "throughput_rps": 21124.6,
+        "iterations": 200
+      }
+    }
+  },
+  "parity": {
+    "n": 2888,
+    "label_agreement": 1.0,
+    "max_abs_proba_diff": 0.022460372390160854,
+    "median_abs_proba_diff": 3.062044603985292e-08,
+    "p999_abs_proba_diff": 0.0008975351501981476,
+    "n_above_1e_3": 3
+  },
+  "artifact_bytes": {
+    "model.joblib": 1206660,
+    "model.onnx": 802288
+  },
+  "environment": {
+    "cpu": "Apple M4",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "measured_at": "2026-09-15T23:50:16Z",
+    "model_version": "20260915T234937Z",
+    "omp_num_threads": "1",
+    "seed": 42,
+    "versions": {
+      "python": "3.12.13",
+      "scikit-learn": "1.8.0",
+      "skl2onnx": "1.20.0",
+      "onnxruntime": "1.30.0",
+      "numpy": "2.5.3"
+    }
+  },
+  "http": {
+    "sklearn": {
+      "label": "sklearn",
+      "n": 1000,
+      "errors": 0,
+      "concurrency": 1,
+      "warmup": 50,
+      "mean_ms": 1.4735,
+      "p50_ms": 1.4037,
+      "p95_ms": 2.0038,
+      "p99_ms": 2.3663,
+      "min_ms": 0.8646,
+      "max_ms": 19.5431,
+      "throughput_rps": 672.67,
+      "environment": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "cpu": "Apple M4",
+        "docker": true,
+        "url": "http://localhost:8000",
+        "measured_at": "2026-09-15T23:50:10Z",
+        "model_version": "20260915T234937Z",
+        "backend": "sklearn",
+        "seed": 42
+      }
+    },
+    "onnx": {
+      "label": "onnx",
+      "n": 1000,
+      "errors": 0,
+      "concurrency": 1,
+      "warmup": 50,
+      "mean_ms": 1.1457,
+      "p50_ms": 1.0446,
+      "p95_ms": 1.6311,
+      "p99_ms": 2.0843,
+      "min_ms": 0.6785,
+      "max_ms": 20.2656,
+      "throughput_rps": 864.67,
+      "environment": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "cpu": "Apple M4",
+        "docker": true,
+        "url": "http://localhost:8000",
+        "measured_at": "2026-09-15T23:50:12Z",
+        "model_version": "20260915T234937Z",
+        "backend": "onnx",
+        "seed": 42
+      }
+    }
+  }
+}
