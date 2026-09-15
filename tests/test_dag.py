@@ -16,7 +16,14 @@ from airflow.dag_processing.dagbag import DagBag  # noqa: E402
 pytestmark = pytest.mark.airflow
 
 DAG_FOLDER = Path(__file__).resolve().parents[1] / "airflow" / "dags"
-EXPECTED_CHAIN = ["ingest_data", "train_model", "evaluate_model", "quality_gate", "promote_model"]
+EXPECTED_CHAIN = [
+    "ingest_data",
+    "train_model",
+    "evaluate_model",
+    "quality_gate",
+    "export_onnx",
+    "promote_model",
+]
 
 
 @pytest.fixture(scope="module")
@@ -36,9 +43,12 @@ def test_dag_task_order(dag):
         assert downstream in dag.get_task(upstream).downstream_task_ids
 
 
-def test_promote_depends_on_quality_gate_and_training(dag):
-    assert {"quality_gate", "train_model", "evaluate_model", "ingest_data"} <= (
-        dag.get_task("promote_model").upstream_task_ids
+def test_promote_never_runs_without_the_quality_gate(dag):
+    # quality_gate é upstream indireto (quality_gate -> export_onnx -> promote_model).
+    upstream = {t.task_id for t in dag.get_task("promote_model").get_flat_relatives(upstream=True)}
+
+    assert {"quality_gate", "export_onnx", "train_model", "evaluate_model", "ingest_data"} <= (
+        upstream
     )
 
 

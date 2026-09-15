@@ -67,7 +67,17 @@ def triage_training():
         pipeline.quality_gate(metrics, float(params["min_f1"]))
 
     @task
-    def promote_model(trained: dict, metrics: dict, ingested: dict, run_id=None) -> dict:
+    def export_onnx(trained: dict, ingested: dict) -> dict:
+        from triage import pipeline
+
+        return pipeline.export_onnx(
+            trained["model_path"], ingested["test_path"], trained["candidate_dir"]
+        )
+
+    @task
+    def promote_model(
+        trained: dict, metrics: dict, ingested: dict, exported: dict, run_id=None
+    ) -> dict:
         from triage import pipeline
 
         return pipeline.promote(
@@ -77,6 +87,7 @@ def triage_training():
             extra={
                 "n_train": ingested["n_train"],
                 "n_test": ingested["n_test"],
+                "onnx": pipeline.onnx_metadata(exported),
                 "trained_by": "airflow",
                 "airflow_run_id": run_id,
             },
@@ -86,8 +97,9 @@ def triage_training():
     trained = train_model(ingested)
     metrics = evaluate_model(trained, ingested)
     gate = quality_gate(metrics)
-    promoted = promote_model(trained, metrics, ingested)
-    gate >> promoted
+    exported = export_onnx(trained, ingested)
+    promoted = promote_model(trained, metrics, ingested, exported)
+    gate >> exported >> promoted
 
 
 triage_training()
