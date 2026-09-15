@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0–5 concluídas; Etapa 6 implementada e validada, faltando o print do dashboard. Próxima: Etapa 7 (ONNX).
+> **Status:** Etapas 0–6 concluídas. Próxima: Etapa 7 (ONNX).
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -712,7 +712,7 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
   | 6 | Distribuição das predições por classe | Pie chart / Bar gauge | `sum by (label) (increase(triage_predictions_total[$__range]))` | [REC] |
   | 7 | Versão do modelo / backend em produção | Table ou Stat | `triage_model_info` | [OPC] |
 
-- [ ] [OBRIG] Rodar `make up`, `make load-test`, esperar ~2 min, conferir todos os painéis com dados. Print de tela inteira → `docs/images/grafana-dashboard.png`. Commitar o JSON (entregável "print/JSON"). — *parcial: stack validada (target UP, dashboard provisionado, painéis 1–6 com dados após o load test); print pendente (ação manual).*
+- [x] [OBRIG] Rodar `make up`, `make load-test`, esperar ~2 min, conferir todos os painéis com dados. Print de tela inteira → `docs/images/grafana-dashboard.png`. Commitar o JSON (entregável "print/JSON").
 - [x] [REC] Seção "Monitoramento" no README com URLs, credenciais e print (pode ser rascunho; a Etapa 8 finaliza).
 
 **Critérios de aceite:**
