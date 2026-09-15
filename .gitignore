@@ -7,6 +7,7 @@ __pycache__/
 .coverage
 htmlcov/
 reports/junit.xml
+reports/coverage.xml
 
 # Dados e artefatos gerados
 data/processed/
