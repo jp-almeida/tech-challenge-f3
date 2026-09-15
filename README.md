@@ -42,7 +42,25 @@
 
 ## Monitoramento (Prometheus + Grafana)
 
-<!-- Etapa 8 -->
+```bash
+make up          # API + Prometheus + Grafana
+make load-test   # ~2 min de tráfego, incluindo erros propositais
+```
+
+| Serviço | URL | Acesso |
+|---|---|---|
+| API (Swagger) | http://localhost:8000/docs | — |
+| Métricas da API | http://localhost:8000/metrics | — |
+| Prometheus | http://localhost:9090/targets | — |
+| Grafana | http://localhost:3000 | `admin` / `admin` (anônimo como Viewer) |
+
+O dashboard **"Triagem de Laudos — API"** (pasta *Triagem*) é provisionado automaticamente a
+partir de [monitoring/grafana/dashboards/triage-api.json](monitoring/grafana/dashboards/triage-api.json),
+sem configuração manual. Painéis: total de requisições, requisições por segundo por endpoint,
+latência HTTP p50/p95/p99 de `/predict`, taxa de erro 4xx/5xx, latência de inferência do modelo
+por backend e distribuição das predições por classe.
+
+![Dashboard do Grafana](docs/images/grafana-dashboard.png)
 
 ## Otimização e comparação de latência
 
