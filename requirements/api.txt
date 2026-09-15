@@ -5,5 +5,7 @@ pydantic==2.13.5
 scikit-learn==1.8.0
 numpy==2.5.3
 joblib==1.6.0
+# triage.data (normalize_text) importa pandas no topo do módulo
+pandas==2.3.3
 prometheus-client==0.26.0
 onnxruntime==1.30.0
