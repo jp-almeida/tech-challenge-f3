@@ -1,0 +1,24 @@
+{
+  "label": "sklearn",
+  "n": 1000,
+  "errors": 0,
+  "concurrency": 1,
+  "warmup": 50,
+  "mean_ms": 1.3208,
+  "p50_ms": 1.3117,
+  "p95_ms": 1.7189,
+  "p99_ms": 2.1324,
+  "min_ms": 0.8865,
+  "max_ms": 2.7569,
+  "throughput_rps": 751.21,
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "cpu": "Apple M4",
+    "docker": true,
+    "url": "http://localhost:8000",
+    "measured_at": "2026-09-15T22:41:45Z",
+    "model_version": "20260915T223812Z",
+    "backend": "sklearn",
+    "seed": 42
+  }
+}
