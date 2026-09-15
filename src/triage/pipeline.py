@@ -110,6 +110,33 @@ def quality_gate(metrics: dict[str, Any], min_f1: float) -> None:
     log.info("quality gate aprovado: f1_macro=%.4f >= %.4f", f1, min_f1)
 
 
+def export_onnx(
+    model_path: str | Path, test_path: str | Path, candidate_dir: str | Path
+) -> dict[str, Any]:
+    """Converte o candidato para ONNX e valida a paridade contra o sklearn."""
+    import joblib
+
+    from triage.data import load_processed
+    from triage.export_onnx import ONNX_FILENAME, check_parity, convert_to_onnx
+
+    candidate_dir = Path(candidate_dir)
+    candidate_dir.mkdir(parents=True, exist_ok=True)
+    pipeline = joblib.load(model_path)
+    onnx_path = candidate_dir / ONNX_FILENAME
+    onnx_path.write_bytes(convert_to_onnx(pipeline))
+
+    texts = load_processed(test_path)["text"].astype(str).tolist()
+    parity = check_parity(pipeline, onnx_path, texts)
+    log.info(
+        "onnx exportado: %s (%.2f MB) paridade=%.4f mediana_dif=%.2e",
+        onnx_path,
+        onnx_path.stat().st_size / 1e6,
+        parity["label_agreement"],
+        parity["median_abs_proba_diff"],
+    )
+    return {"onnx_path": str(onnx_path), **parity}
+
+
 def promote(
     candidate_dir: str | Path,
     model_dir: str | Path,
@@ -159,13 +186,29 @@ def run_all(settings: Settings, params: dict[str, Any] | None = None) -> dict[st
     trained = train(ingested["train_path"], candidate_dir, params)
     metrics = evaluate(trained["model_path"], ingested["test_path"], settings.reports_dir)
     quality_gate(metrics, settings.quality_gate_f1)
+    exported = export_onnx(trained["model_path"], ingested["test_path"], candidate_dir)
     promoted = promote(
         candidate_dir,
         settings.model_dir,
         metrics,
-        extra={"n_train": ingested["n_train"], "n_test": ingested["n_test"]},
+        extra={
+            "n_train": ingested["n_train"],
+            "n_test": ingested["n_test"],
+            "onnx": onnx_metadata(exported),
+        },
     )
-    return {**ingested, **trained, **metrics, **promoted}
+    return {**ingested, **trained, **metrics, **exported, **promoted}
+
+
+def onnx_metadata(exported: dict[str, Any]) -> dict[str, Any]:
+    """Bloco `onnx` do metadata.json (§3.4) a partir do retorno de export_onnx."""
+    return {
+        "available": True,
+        "parity_label_agreement": exported["label_agreement"],
+        "max_abs_proba_diff": exported["max_abs_proba_diff"],
+        "median_abs_proba_diff": exported["median_abs_proba_diff"],
+        "parity_n": exported["n"],
+    }
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -178,6 +221,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_eval = sub.add_parser("evaluate")
     p_eval.add_argument("--model-path")
     p_eval.add_argument("--test-path")
+    p_onnx = sub.add_parser("export-onnx")
+    p_onnx.add_argument("--model-path")
+    p_onnx.add_argument("--test-path")
+    p_onnx.add_argument("--candidate-dir")
     p_promote = sub.add_parser("promote")
     p_promote.add_argument("--candidate-dir")
     sub.add_parser("run-all")
@@ -200,6 +247,10 @@ def main(argv: list[str] | None = None) -> int:
             model_path = args.model_path or default_candidate / "model.joblib"
             test_path = args.test_path or settings.processed_dir / "test.csv"
             result = evaluate(model_path, test_path, settings.reports_dir)
+        case "export-onnx":
+            model_path = args.model_path or default_candidate / "model.joblib"
+            test_path = args.test_path or settings.processed_dir / "test.csv"
+            result = export_onnx(model_path, test_path, args.candidate_dir or default_candidate)
         case "promote":
             metrics_file = settings.reports_dir / "metrics" / "classification_report.json"
             metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
