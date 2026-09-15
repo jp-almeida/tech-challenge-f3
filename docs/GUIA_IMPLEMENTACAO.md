@@ -2,7 +2,7 @@
 
 **Tema:** Triagem automática de laudos (normal / atenção / urgente) servida via API, com CI/CD, retreino orquestrado (Airflow), monitoramento (Prometheus + Grafana) e otimização de latência (ONNX).
 
-> **Status:** Etapas 0, 1 e 2 concluídas; Etapa 3 com workflow pronto, aguardando push para o GitHub.
+> **Status:** Etapas 0–3 concluídas; Etapa 4 implementada e validada, faltando os prints da UI do Airflow.
 > **Versões e dataset verificados em:** 15/09/2026.
 > Documento vivo: marque os checkboxes ao concluir cada item e registre desvios na seção "Registro de decisões" no final.
 
@@ -389,7 +389,7 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** Python 3.12, Docker Desktop (≥ 6 GB RAM alocados), `git`, `make` e conta GitHub disponíveis.
 
 **Tarefas:**
-- [ ] [OBRIG] `git init -b main`; criar repositório no GitHub (público ou com avaliadores com acesso); `git remote add origin ...`. — *parcial: `git init` feito; repositório no GitHub e `remote` pendentes (ação manual).*
+- [x] [OBRIG] `git init -b main`; criar repositório no GitHub (público ou com avaliadores com acesso); `git remote add origin ...`. — *https://github.com/jp-almeida/tech-challenge-f3*
 - [x] [OBRIG] `.gitignore`: `.venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`, `.coverage`, `data/processed/`, `models/candidates/`, `airflow/logs/`, `*.db`, `.env`, `.DS_Store`. **Não** ignorar `models/*.joblib`, `models/*.onnx`, `data/raw/`.
 - [x] [OBRIG] Criar a árvore de pastas de §3.3 (com `__init__.py` e `.gitkeep` onde precisar).
 - [x] [OBRIG] `pyproject.toml` com:
@@ -553,8 +553,8 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
   - **Job `build`** [OBRIG] (`needs: test`): `docker build -t triage-api:${{ github.sha }} .`; smoke test: `docker run -d -p 8000:8000`, loop de até ~60 s aguardando `/health` responder 200, depois `POST /predict` com texto de exemplo e checar `label` no JSON; `docker logs` em caso de falha (`if: failure()`).
   - **Job `publish`** [REC — torna o "CD" concreto] (`needs: build`, `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`, `permissions: packages: write`): `docker/login-action` no GHCR com `GITHUB_TOKEN`, `docker/metadata-action` (tags `sha` e `latest`), `docker/build-push-action`.
   - **Job `dag-check`** [OPC]: instala `apache-airflow==3.3.1` com constraints oficiais (`https://raw.githubusercontent.com/apache/airflow/constraints-3.3.1/constraints-3.12.txt`) + `requirements/train.txt` e roda `pytest tests/test_dag.py`. Lento (minutos) — só se sobrar tempo.
-- [ ] [REC] Badge do workflow no README.
-- [ ] [OBRIG] Fazer push e confirmar execução verde. Tirar print da aba Actions com os jobs → `docs/images/github-actions.png`.
+- [x] [REC] Badge do workflow no README.
+- [x] [OBRIG] Fazer push e confirmar execução verde. Tirar print da aba Actions com os jobs → `docs/images/github-actions.png`.
 - [ ] [OPC] Validação de mensagens de commit (commitlint) como automação extra.
 
 **Critérios de aceite:**
@@ -586,12 +586,12 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 **Pré-checagem:** `python -m triage.pipeline run-all` funciona localmente (se não funciona fora do Airflow, não vai funcionar dentro).
 
 **Tarefas:**
-- [ ] [OBRIG] `airflow/Dockerfile`:
+- [x] [OBRIG] `airflow/Dockerfile`:
   - `FROM apache/airflow:3.3.1-python3.12`
   - `COPY requirements/train.txt /tmp/train.txt`
   - `RUN pip install --no-cache-dir "apache-airflow==3.3.1" -r /tmp/train.txt` (fixar o `apache-airflow` na mesma instalação evita que o pip o atualize/rebaixe).
   - Build context = raiz do repo (para enxergar `requirements/`).
-- [ ] [OBRIG] Serviço `airflow` no `docker-compose.yml` (se a Etapa 6 ainda não criou o arquivo, crie-o só com este serviço; a Etapa 6 adiciona os demais):
+- [x] [OBRIG] Serviço `airflow` no `docker-compose.yml` (se a Etapa 6 ainda não criou o arquivo, crie-o só com este serviço; a Etapa 6 adiciona os demais):
   - `profiles: ["airflow"]` (não sobe no `docker compose up` padrão).
   - `build: { context: ., dockerfile: airflow/Dockerfile }`, `command: standalone`, `ports: ["8080:8080"]`.
   - `environment`: `AIRFLOW__CORE__LOAD_EXAMPLES: "false"`, `AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"` (**somente dev**, desliga login), `PYTHONPATH: /opt/airflow/src`, `TRIAGE_DATA_DIR`, `TRIAGE_MODEL_DIR`, `TRIAGE_REPORTS_DIR` (§3.6).
@@ -599,7 +599,7 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
   - [REC] `user: "${AIRFLOW_UID:-50000}:0"` para evitar problemas de permissão em bind mounts (principalmente Linux).
   - Se a flag de auth não surtir efeito na versão, a senha do admin do `standalone` aparece nos logs do container / arquivo `simple_auth_manager_passwords.json.generated` em `AIRFLOW_HOME`.
   - Se o `standalone` apresentar problema de executor/banco (SQLite), plano B: adicionar serviço `postgres` no mesmo profile e apontar `AIRFLOW__DATABASE__SQL_ALCHEMY_CONN`.
-- [ ] [OBRIG] `airflow/dags/triage_training_dag.py` com TaskFlow API do Airflow 3:
+- [x] [OBRIG] `airflow/dags/triage_training_dag.py` com TaskFlow API do Airflow 3:
   - `from airflow.sdk import dag, task` (em Airflow 2 seria `airflow.decorators` — **não misturar**).
   - `@dag(dag_id="triage_training", schedule=None, start_date=datetime(2026, 1, 1), catchup=False, tags=["triage", "training"], params={"max_features": 20000, "C": 1.0, "min_f1": <gate>})` — `schedule=None` (disparo manual) [REC: comentar que em produção seria `@weekly` ou disparado por drift].
   - **Imports pesados (sklearn, pandas) dentro das tasks**, não no topo do arquivo (parsing da DAG fica rápido).
@@ -616,10 +616,10 @@ Fluxo de uma requisição: validação Pydantic → `normalize_text` → `predic
 
   - `candidate_dir = models/candidates/<run_id sanitizado>`; retries: `retries=1`, `retry_delay=timedelta(minutes=1)` [REC].
   - Encadeamento: `ingest → train → evaluate → quality_gate → export_onnx → promote`.
-- [ ] [OBRIG] Validar sem scheduler: `docker compose --profile airflow run --rm airflow airflow dags test triage_training` (executa a DAG inteira e mostra logs no terminal). Depois verificar `airflow dags list-import-errors` vazio.
-- [ ] [OBRIG] Subir `make up-airflow`, abrir `http://localhost:8080`, disparar a DAG pela UI, confirmar todas as tasks verdes. Prints → `docs/images/airflow-dag-graph.png` e `airflow-dag-run.png`.
-- [ ] [REC] `tests/test_dag.py`: `pytest.importorskip("airflow")`; carregar `DagBag(dag_folder="airflow/dags", include_examples=False)`; assert sem `import_errors`, `task_ids` esperados e ordem das dependências.
-- [ ] [REC] Após a promoção, documentar como a API pega o novo modelo: `docker compose restart api` (ou [OPC] task final chamando `POST http://api:8000/admin/reload`, exigindo mesma rede do Compose).
+- [x] [OBRIG] Validar sem scheduler: `docker compose --profile airflow run --rm airflow airflow dags test triage_training` (executa a DAG inteira e mostra logs no terminal). Depois verificar `airflow dags list-import-errors` vazio.
+- [ ] [OBRIG] Subir `make up-airflow`, abrir `http://localhost:8080`, disparar a DAG pela UI, confirmar todas as tasks verdes. Prints → `docs/images/airflow-dag-graph.png` e `airflow-dag-run.png`. — *parcial: stack no ar e run disparado pelo scheduler com as 5 tasks em sucesso; prints pendentes (ação manual).*
+- [x] [REC] `tests/test_dag.py`: `pytest.importorskip("airflow")`; carregar `DagBag(dag_folder="airflow/dags", include_examples=False)`; assert sem `import_errors`, `task_ids` esperados e ordem das dependências.
+- [x] [REC] Após a promoção, documentar como a API pega o novo modelo: `docker compose restart api` (ou [OPC] task final chamando `POST http://api:8000/admin/reload`, exigindo mesma rede do Compose). — *atenção: o `Dockerfile` da API copia `models/` para a imagem; na Etapa 6 o serviço `api` precisa montar `./models:/app/models:ro` para o restart pegar o modelo novo.*
 
 **Critérios de aceite:**
 - `airflow dags test triage_training` termina com sucesso.
@@ -968,4 +968,12 @@ Cortar **nesta ordem**, sem nunca tocar em itens [OBRIG]:
 | 15/09/2026 | 2 | Baseline HTTP em Docker (Docker Desktop, Apple Silicon, concorrência 1, n=1000): **p50 1,31 ms · p95 1,72 ms · p99 2,13 ms**, ~751 rps, 0 erros. Repetição: p95 1,66 ms (variação ~10%) | `reports/latency/api_sklearn.json` |
 | 15/09/2026 | 2 | **SLO de referência: p95 ponta a ponta < 10 ms** (local, Docker, concorrência 1) | ~6× de folga sobre o baseline; os 50 ms do exemplo seriam folgados demais para evidenciar ganho |
 | 15/09/2026 | 3 | Actions nas majors atuais: checkout@v7, setup-python@v7, upload-artifact@v7, docker/setup-buildx@v4, login@v4, metadata@v6, build-push@v7. Workflow validado com actionlint; jobs lint/test/build simulados em clone limpo | Tags consultadas na API do GitHub em 15/09/2026 |
+| 15/09/2026 | 3 | Run verde no GitHub Actions (4 jobs, incl. publish no GHCR) em `main`; print em `docs/images/github-actions.png`; badge no README | — |
+| 15/09/2026 | 4 | A imagem `apache/airflow:3.3.1-python3.12` traz **scikit-learn 1.9.0 e pandas 3.0.5**; o `pip install "apache-airflow==3.3.1" -r train.txt` rebaixa para 1.8.0/2.3.3 sem quebrar nada (`pip check` limpo) | Materializa o R4: sem os pins, o `.joblib` treinado no Airflow seria de outra versão da API |
+| 15/09/2026 | 4 | `airflow dags test` exige `airflow db migrate` antes (container novo a cada `run --rm`); alvo `make dag-test` encadeia os dois | Erro "Database migration required" na 1ª tentativa |
+| 15/09/2026 | 4 | `standalone` com SQLite é suficiente: run disparado pelo scheduler concluiu as 5 tasks em ~16 s (~1 GB de RAM). Plano B com Postgres descartado | Validado em 15/09/2026 |
+| 15/09/2026 | 4 | Porta do host do Airflow configurável via `AIRFLOW_PORT` (padrão 8080, §3.8) | A 8080 da máquina de desenvolvimento estava ocupada por outro Airflow; validação feita com `AIRFLOW_PORT=8081` |
+| 15/09/2026 | 4 | `quality_gate` com `retries=0`; validado que `--conf '{"min_f1": 0.99}'` falha o run e **não** promove (artefatos inalterados) | Reexecutar não muda o F1; retry só atrasaria a falha |
+| 15/09/2026 | 4 | `tests/test_dag.py` usa `airflow.dag_processing.dagbag.DagBag(dag_folder=...)` **sem** `include_examples` (removido no 3.3). Roda na imagem via `make test-dag`; no `.venv`/CI é pulado | `TypeError` com a assinatura antiga |
+| 15/09/2026 | 4 | **Handoff p/ Etapa 6:** o serviço `api` deve montar `./models:/app/models:ro`, senão `docker compose restart api` continua servindo o modelo copiado no build | O `Dockerfile` faz `COPY models/` |
 | | 6 | Tags fixas de Prometheus/Grafana: | |
