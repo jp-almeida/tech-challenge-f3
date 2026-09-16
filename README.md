@@ -285,6 +285,10 @@ Reproduza com `make bench-models` e `make bench-api BACKEND=onnx`.
 - **Docker Desktop** com **≥ 6 GB** de RAM alocados (o perfil do Airflow sozinho usa ~1 GB)
 - **Python 3.12** e **make** — apenas para desenvolvimento local e benchmarks
 
+> **Windows:** o Makefile detecta o sistema operacional e usa `.venv/Scripts` e o `py launcher`
+> automaticamente. O quickstart com Docker não precisa de `make`; para os alvos de desenvolvimento,
+> instale o GNU Make (por exemplo, `choco install make`) e rode pelo terminal de sua preferência.
+
 ### Quickstart (3 comandos)
 
 ```bash

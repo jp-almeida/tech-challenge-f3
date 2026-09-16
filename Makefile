@@ -1,25 +1,39 @@
-PY := .venv/bin/python
-PIP := .venv/bin/pip
+# Detecta o sistema operacional: no Windows o virtualenv usa .venv/Scripts e o
+# interpretador é chamado pelo py launcher; no Linux/macOS, .venv/bin e python3.12.
+ifeq ($(OS),Windows_NT)
+    VENV_BIN := .venv/Scripts
+    BOOTSTRAP_PY := py -3.12
+else
+    VENV_BIN := .venv/bin
+    BOOTSTRAP_PY := python3.12
+endif
+
+PY := $(VENV_BIN)/python
+PIP := $(VENV_BIN)/pip
+RUFF := $(VENV_BIN)/ruff
+PYTEST := $(VENV_BIN)/pytest
+UVICORN := $(VENV_BIN)/uvicorn
+
 export PYTHONPATH := src
 BACKEND ?= sklearn
 
 .PHONY: setup lint format test data train api docker-build up down up-airflow dag-test test-dag load-test bench-models bench-api clean
 
 setup:
-	python3.12 -m venv .venv || uv venv --seed --python 3.12 .venv
+	$(BOOTSTRAP_PY) -m venv .venv || uv venv --seed --python 3.12 .venv
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements/dev.txt
 
 lint:
-	.venv/bin/ruff check .
-	.venv/bin/ruff format --check .
+	$(RUFF) check .
+	$(RUFF) format --check .
 
 format:
-	.venv/bin/ruff format .
-	.venv/bin/ruff check --fix .
+	$(RUFF) format .
+	$(RUFF) check --fix .
 
 test:
-	.venv/bin/pytest --cov=src/triage --cov-report=term-missing
+	$(PYTEST) --cov=src/triage --cov-report=term-missing
 
 data:
 	$(PY) scripts/download_data.py
@@ -28,7 +42,7 @@ train:
 	$(PY) -m triage.pipeline run-all
 
 api:
-	.venv/bin/uvicorn triage.api.main:app --reload
+	$(UVICORN) triage.api.main:app --reload
 
 docker-build:
 	docker build -t triage-api:local .
@@ -64,5 +78,6 @@ bench-models:
 bench-api:
 	$(PY) scripts/benchmark_api.py --label $(BACKEND)
 
+# Em Python em vez de rm -rf: funciona igual no cmd, no PowerShell e no shell POSIX.
 clean:
-	rm -rf .pytest_cache .ruff_cache .coverage data/processed/*.csv models/candidates/*
+	$(PY) scripts/clean.py
