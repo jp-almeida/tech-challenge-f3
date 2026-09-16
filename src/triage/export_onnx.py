@@ -1,8 +1,8 @@
 """Conversão do pipeline sklearn para ONNX e verificação de paridade.
 
-A configuração do conversor foi fixada no spike da Etapa 1 (ver "Registro de decisões"
-do guia): sem `sublinear_tf` no treino e `tokenexp` explícito aqui — com a configuração
-original a concordância de rótulos caía para 98,75% no conjunto de teste completo.
+A configuração do conversor é sensível: sem `sublinear_tf` no treino e com `tokenexp`
+explícito aqui a concordância de rótulos é de 100%; com `sublinear_tf` ligado ela cai
+para 98,75% no conjunto de teste completo.
 """
 
 from __future__ import annotations

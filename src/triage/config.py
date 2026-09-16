@@ -1,4 +1,4 @@
-"""Configuração central: rótulos, caminhos e variáveis de ambiente (§3.6 do guia)."""
+"""Configuração central: rótulos, caminhos e variáveis de ambiente."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 # Ordem fixa: o índice da lista é o label_id usado em todo o projeto.
 LABELS: list[str] = ["normal", "atencao", "urgente"]
 
-# condition_label do dataset bruto (1-5) -> label_id (0-2). Ver §3.2 do guia.
+# condition_label do dataset bruto (1-5) -> label_id (0-2).
+# O mapeamento por especialidade é um proxy de urgência; ver README, seção 4.
 LABEL_MAPPING: dict[int, int] = {1: 1, 2: 1, 3: 2, 4: 2, 5: 0}
 
 RAW_FILES = {"train": "medical_tc_train.csv", "test": "medical_tc_test.csv"}
@@ -24,7 +25,7 @@ DEFAULT_PARAMS: dict[str, object] = {
     "ngram_range": (1, 2),
     "min_df": 2,
     "C": 1.0,
-    # False: com True a paridade ONNX cai para 98,75% (ver Registro de decisões do guia).
+    # False: com True a concordância de rótulos entre sklearn e ONNX cai para 98,75%.
     "sublinear_tf": False,
     "max_iter": 1000,
     "random_state": 42,

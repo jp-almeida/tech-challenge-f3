@@ -1,6 +1,6 @@
 """Passos orquestráveis do treino, usados pela CLI (`make train`) e pela DAG do Airflow.
 
-Contrato (§3.4 do guia): I/O apenas por caminhos; retornos pequenos e serializáveis em
+Contrato: I/O apenas por caminhos; retornos pequenos e serializáveis em
 JSON, para trafegarem por XCom sem carregar DataFrames.
 """
 
@@ -201,7 +201,7 @@ def run_all(settings: Settings, params: dict[str, Any] | None = None) -> dict[st
 
 
 def onnx_metadata(exported: dict[str, Any]) -> dict[str, Any]:
-    """Bloco `onnx` do metadata.json (§3.4) a partir do retorno de export_onnx."""
+    """Bloco `onnx` do metadata.json a partir do retorno de export_onnx."""
     return {
         "available": True,
         "parity_label_agreement": exported["label_agreement"],

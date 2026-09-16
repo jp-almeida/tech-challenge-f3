@@ -1,4 +1,4 @@
-"""Schemas Pydantic do contrato da API (§3.5 do guia)."""
+"""Schemas Pydantic do contrato da API."""
 
 from __future__ import annotations
 

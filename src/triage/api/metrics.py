@@ -1,4 +1,6 @@
-"""Métricas Prometheus e middleware HTTP (contrato §3.7 do guia).
+"""Métricas Prometheus e middleware HTTP.
+
+Os nomes das métricas são contrato: o dashboard do Grafana depende deles.
 
 As métricas são definidas no nível do módulo, uma única vez por processo: criá-las
 dentro de create_app() quebraria os testes com "Duplicated timeseries in CollectorRegistry".
