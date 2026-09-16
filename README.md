@@ -9,7 +9,7 @@ e otimização de latência com ONNX Runtime (**2,3× mais rápido** que o sciki
 
 **Tech Challenge — Fase 3 · Pós-Tech Machine Learning Engineering (FIAP)**
 
-🎥 **Vídeo de apresentação:** _(a publicar — Etapa 9)_
+🎥 **Vídeo de apresentação:** 
 
 ---
 
@@ -556,5 +556,3 @@ Python 3.12 · scikit-learn 1.8.0 · skl2onnx 1.20.0 · onnxruntime 1.30.0 · Fa
 | Nome | GitHub |
 |---|---|
 | João Almeida | [@jp-almeida](https://github.com/jp-almeida) |
-
-_(Completar com os demais integrantes do grupo.)_
