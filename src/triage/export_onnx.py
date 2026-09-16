@@ -27,16 +27,25 @@ CONVERTER_OPTIONS: dict[Any, dict[str, Any]] = {
     LogisticRegression: {"zipmap": False},
 }
 
+# O que o gate cobra, e por quê.
+#
+# O critério que importa é o rótulo: se sklearn e ONNX decidem igual, a troca de backend é
+# transparente para quem consome a API.
 MIN_LABEL_AGREEMENT = 0.995
 
-# Por que o gate usa mediana e p99,9 em vez do máximo absoluto:
-# o operador TfIdfVectorizer do ONNX monta n-gramas a partir do pool de unigramas, então
-# descarta bigramas cujo componente não esteja no vocabulário. Neste modelo isso atinge
-# exatamente 1 dos 12.673 bigramas ("von hippel", porque "hippel" foi podado por min_df).
-# Nos 3 textos afetados a normalização L2 desloca todas as probabilidades em ~1e-2, sem
-# trocar o rótulo. Um teto no máximo absoluto reprovaria por causa desses 3 casos.
-MAX_MEDIAN_PROBA_DIFF = 1e-3
-MAX_P999_PROBA_DIFF = 1e-3
+# A mediana pega divergência sistemática — foi ela que reprovou a configuração com
+# `sublinear_tf=True` (mediana ~5e-3, quatro ordens acima do normal, que é ~3e-8).
+MAX_MEDIAN_PROBA_DIFF = 1e-4
+
+# O p99,9 é só uma rede de segurança para a cauda, com folga deliberada. Duas fontes de
+# divergência pontual são conhecidas e benignas:
+#   1. o TfIdfVectorizer do ONNX monta n-gramas a partir do pool de unigramas e descarta
+#      bigramas cujo componente foi podado por min_df (aqui, "von hippel");
+#   2. a ordem de acumulação em float32 difere entre o BLAS do sklearn e os kernels do
+#      ONNX Runtime, e o quanto ela difere depende da arquitetura da CPU.
+# Por isso o limiar não é ajustado aos números de uma máquina: medimos p99,9 de 9e-4 em
+# Apple Silicon e 2,8e-3 em x86, ambos sem trocar nenhum rótulo.
+MAX_P999_PROBA_DIFF = 1e-2
 
 
 def convert_to_onnx(pipeline: Pipeline) -> bytes:
