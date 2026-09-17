@@ -9,7 +9,7 @@ e otimização de latência com ONNX Runtime (**2,3× mais rápido** que o sciki
 
 **Tech Challenge — Fase 3 · Pós-Tech Machine Learning Engineering (FIAP)**
 
-🎥 **Vídeo de apresentação:** 
+🎥 **Vídeo de apresentação:** https://drive.google.com/file/d/1VgwA6T9xZby3G9cCnXjVC_3Ujb4CxaJR/view?usp=sharing
 
 ---
 
