@@ -20,3 +20,7 @@ airflow/logs/
 # Ambiente
 .env
 .DS_Store
+
+# Material interno, não publicado
+docs/video_roteiro.md
+docs/ENTENDENDO_O_PROJETO.md
